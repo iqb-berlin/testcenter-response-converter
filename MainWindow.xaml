@@ -3,35 +3,69 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:itc_AntwortKonverter"
+        xmlns:local="clr-namespace:HUBerlin.IQB.TC.AntwortKonverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800" Background="#FFF0F0F0" Icon="pack://siteoforigin:,,,/Resources/IQB-Testcenter.ico">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quellverzeichnis Logs.Csv/Response.Csv</TextBlock>
-                    <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeCsvSource_Click">Wählen</Button>
-                    <TextBlock Name="TBCsvSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
-                </DockPanel>
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quelldatei BookletSize.txt</TextBlock>
-                    <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeBookletTxtSource_Click">Wählen</Button>
-                    <TextBlock Name="TBBookletTxtSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
-                </DockPanel>
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Optionen</TextBlock>
-                    <ComboBox DockPanel.Dock="Right" Width="150px">
-                        <ComboBoxItem>v 1.1</ComboBoxItem>
-                        <ComboBoxItem>v 1.2</ComboBoxItem>
-                    </ComboBox>
-                    <TextBlock Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">Version IQB-Testcenter</TextBlock>
-                </DockPanel>
-            </StackPanel>
-        </ScrollViewer>
+        <DockPanel Grid.Column="0" Margin="5">
+            <DockPanel DockPanel.Dock="Bottom" Margin="0 5 0 0">
+                <Button Click="BtnHelp_Click" Padding="3 0 3 0">?</Button>
+                <WrapPanel HorizontalAlignment="Right">
+                    <Button DockPanel.Dock="Right" Padding="5 0 5 0" Margin="5 0 0 0" Click="BtnResponsesXlsx_Click">Erzeuge Responses.Xlsx</Button>
+                    <Button DockPanel.Dock="Right" Padding="5 0 5 0" Margin="5 0 0 0" Click="BtnLogsXlsx_Click">Erzeuge Logs.Xlsx</Button>
+                </WrapPanel>
+            </DockPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quellverzeichnis Logs.Csv/Response.Csv</TextBlock>
+                        <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeCsvSource_Click">Wählen</Button>
+                        <TextBlock Name="TBCsvSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quelldatei BookletSize.txt</TextBlock>
+                        <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeBookletTxtSource_Click">Wählen</Button>
+                        <TextBlock Name="TBBookletTxtSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Optionen</TextBlock>
+                        <ComboBox DockPanel.Dock="Right" Width="150px">
+                            <ComboBoxItem>v 1.1</ComboBoxItem>
+                            <ComboBoxItem>v 1.2</ComboBoxItem>
+                        </ComboBox>
+                        <TextBlock Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">Version IQB-Testcenter</TextBlock>
+                    </DockPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+        <GridSplitter Width="5" Grid.Column="0"/>
+        <DockPanel Grid.Column="1" Margin="5">
+            <WrapPanel HorizontalAlignment="Right" DockPanel.Dock="Bottom" Margin="0 5 0 0">
+                <Button Padding="5 0 5 0" Margin="5 0 0 0" Name="BtnEditor">Inhalt in Texteditor kopieren</Button>
+                <Button Padding="5 0 5 0" Margin="5 0 0 0" Name="BtnCancel" IsEnabled="False">Abbrechen</Button>
+            </WrapPanel>
+            <Border BorderThickness="1" BorderBrush="Black">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox Name="MyTB" IsReadOnly="True" Background="Transparent" BorderBrush="Transparent">
+                        <TextBox.Triggers>
+                            <EventTrigger RoutedEvent="TextBox.TextChanged">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="MyTB" Storyboard.TargetProperty="Opacity" To="1" 
+                                         AutoReverse="False" />
+                                        <DoubleAnimation Storyboard.TargetName="MyTB" Storyboard.TargetProperty="Opacity" To="0" 
+                                         BeginTime="0:0:10" Duration="0:0:4" AutoReverse="False" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </TextBox.Triggers>
+                    </TextBox>
+                </ScrollViewer>
+            </Border>
+        </DockPanel>
     </Grid>
 </Window>
