@@ -1,0 +1,37 @@
+﻿<Window x:Class="MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:itc_AntwortKonverter"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quellverzeichnis Logs.Csv/Response.Csv</TextBlock>
+                    <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeCsvSource_Click">Wählen</Button>
+                    <TextBlock Name="TBCsvSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
+                </DockPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quelldatei BookletSize.txt</TextBlock>
+                    <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeBookletTxtSource_Click">Wählen</Button>
+                    <TextBlock Name="TBBookletTxtSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
+                </DockPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Optionen</TextBlock>
+                    <ComboBox DockPanel.Dock="Right" Width="150px">
+                        <ComboBoxItem>v 1.1</ComboBoxItem>
+                        <ComboBoxItem>v 1.2</ComboBoxItem>
+                    </ComboBox>
+                    <TextBlock Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">Version IQB-Testcenter</TextBlock>
+                </DockPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
