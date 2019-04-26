@@ -197,6 +197,7 @@ Class MainWindow
                                     Dim parameter As String = ""
                                     If key.IndexOf(": ") > 0 Then
                                         parameter = key.Substring(key.IndexOf(": ") + 2)
+                                        If parameter.IndexOf("""") = 0 AndAlso parameter.LastIndexOf("""") = parameter.Length - 1 Then parameter = parameter.Substring(1, parameter.Length - 2)
                                         key = key.Substring(0, key.IndexOf(": "))
                                     End If
 
@@ -214,15 +215,17 @@ Class MainWindow
                                                 Debug.Print("sysdata json convert failed: " + ex.Message)
                                             End Try
                                             myTestPersonList.SetSysdata(group, login, code, booklet, sysdata)
+                                            myTestPersonList.AddLogEvent(group, login, code, booklet, timestampInt, "#BOOKLET#", key, parameter)
                                         Case "BOOKLETLOADCOMPLETE"
                                             myTestPersonList.SetFirstBookletLoadComplete(group, login, code, booklet, timestampInt)
+                                            myTestPersonList.AddLogEvent(group, login, code, booklet, timestampInt, "#BOOKLET#", key, parameter)
                                         Case "RESPONSESCOMPLETE", "PRESENTATIONCOMPLETE"
-                                            'ignore
-
+                                            myTestPersonList.AddLogEvent(group, login, code, booklet, timestampInt, unit, key, parameter)
+                                        Case "UNITENTER"
+                                            myTestPersonList.SetFirstUnitEnter(group, login, code, booklet, timestampInt)
+                                            myTestPersonList.AddLogEvent(group, login, code, booklet, timestampInt, unit, key, parameter)
                                         Case Else
-                                            If Not String.IsNullOrEmpty(unit) Then
-                                                myTestPersonList.AddUnitEvent(group, login, code, booklet, timestampInt, unit, key, parameter)
-                                            End If
+                                            myTestPersonList.AddLogEvent(group, login, code, booklet, timestampInt, unit, key, parameter)
                                     End Select
                                 End If
                             End If
@@ -322,9 +325,60 @@ Class MainWindow
 
 
                         '########################################################
-                        'LogVariables
+                        'TimeOnPage
                         '########################################################
-                        Dim TableLogVariables As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "LogVariables")
+                        Dim TableTimeOnPage As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "TimeOnPage")
+                        xlsxFactory.SetCellValueString("A", 1, TableTimeOnPage, "Zeitpunkt-Variablen Testcenter", xlsxFactory.CellFormatting.Null, myStyles)
+                        xlsxFactory.SetCellValueString("A", 2, TableTimeOnPage, "generiert mit " + My.Application.Info.AssemblyName + " V" +
+                                                       My.Application.Info.Version.Major.ToString + "." + My.Application.Info.Version.Minor.ToString + "." +
+                                                       My.Application.Info.Version.Build.ToString + " am " + DateTime.Now.ToShortDateString + " " + DateTime.Now.ToShortTimeString +
+                                                       " (" + currentUserName + ")", xlsxFactory.CellFormatting.Null, myStyles)
+
+                        myRow = 4
+                        xlsxFactory.SetCellValueString("A", myRow, TableTimeOnPage, "ID", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("A", TableTimeOnPage, 20)
+
+                        Dim AllTimeVariables As New List(Of String)
+                        Dim AllTimeOnPage As New Dictionary(Of String, List(Of TimeOnPage))
+                        For Each tc As KeyValuePair(Of String, TestPerson) In myTestPersonList
+                            If myworker.CancellationPending Then Exit For
+                            If Not AllTimeOnPage.ContainsKey(tc.Key) Then
+                                Dim myTimeOnPageList As List(Of TimeOnPage) = tc.Value.GetTimeOnPageList(AllUnitsWithResponses)
+                                AllTimeOnPage.Add(tc.Key, myTimeOnPageList)
+                                For Each p As TimeOnPage In myTimeOnPageList
+                                    If Not AllTimeVariables.Contains(p.page) Then AllTimeVariables.Add(p.page)
+                                Next
+                            End If
+                        Next
+
+                        myColumn = "B"
+                        Columns.Clear()
+                        For Each s As String In From v As String In AllTimeVariables Order By v
+                            xlsxFactory.SetCellValueString(myColumn, myRow, TableTimeOnPage, s + "##topTotal", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                            xlsxFactory.SetColumnWidth(myColumn, TableTimeOnPage, 10)
+                            Columns.Add(s, myColumn)
+                            myColumn = xlsxFactory.GetNextColumn(myColumn)
+                            xlsxFactory.SetCellValueString(myColumn, myRow, TableTimeOnPage, s + "##topCount", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                            xlsxFactory.SetColumnWidth(myColumn, TableTimeOnPage, 10)
+                            myColumn = xlsxFactory.GetNextColumn(myColumn)
+                        Next
+
+                        progressMax = AllTimeOnPage.Count
+                        progressCount = 1
+                        For Each topList As KeyValuePair(Of String, List(Of TimeOnPage)) In From top As KeyValuePair(Of String, List(Of TimeOnPage)) In AllTimeOnPage Order By top.Key
+                            If myworker.CancellationPending Then Exit For
+                            myworker.ReportProgress(progressCount * 100 / progressMax, "")
+                            progressCount += 1
+
+                            myRow += 1
+                            Dim myRowData As New List(Of RowData)
+                            myRowData.Add(New RowData With {.Column = "A", .Value = topList.Key, .CellType = CellTypes.str})
+                            For Each top As TimeOnPage In topList.Value
+                                myRowData.Add(New RowData With {.Column = Columns.Item(top.page), .Value = top.millisec, .CellType = CellTypes.int})
+                                myRowData.Add(New RowData With {.Column = xlsxFactory.GetNextColumn(Columns.Item(top.page)), .Value = top.count, .CellType = CellTypes.int})
+                            Next
+                            xlsxFactory.AppendRow(myRow, myRowData, TableTimeOnPage)
+                        Next
 
 
 
@@ -353,22 +407,6 @@ Class MainWindow
                         xlsxFactory.SetColumnWidth("C", TableTechLog, 20)
                         xlsxFactory.SetCellValueString("D", myRow, TableTechLog, "loadspeed", xlsxFactory.CellFormatting.RowHeader2, myStyles)
                         xlsxFactory.SetColumnWidth("D", TableTechLog, 20)
-
-                        myColumn = "E"
-                        Columns.Clear()
-
-                        For Each s As String In From v As String In AllUnitsWithResponses Order By v Select v
-                            xlsxFactory.SetCellValueString(myColumn, myRow, TableTechLog, s + "##staying", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                            xlsxFactory.SetColumnWidth(myColumn, TableResponses, 10)
-                            Columns.Add(s, myColumn)
-                            myColumn = xlsxFactory.GetNextColumn(myColumn)
-                            xlsxFactory.SetCellValueString(myColumn, myRow, TableTechLog, s, xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                            xlsxFactory.SetColumnWidth(myColumn, TableResponses, 10)
-                            myColumn = xlsxFactory.GetNextColumn(myColumn)
-                        Next
-
-                        xlsxFactory.SetCellValueString("F", myRow, TableTechLog, "unit history", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("F", TableTechLog, 20)
 
 
                         progressMax = myTestPersonList.Count
