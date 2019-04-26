@@ -15,8 +15,8 @@
             <DockPanel DockPanel.Dock="Bottom" Margin="0 5 0 0">
                 <Button Click="BtnHelp_Click" Padding="3 0 3 0">?</Button>
                 <WrapPanel HorizontalAlignment="Right">
-                    <Button DockPanel.Dock="Right" Padding="5 0 5 0" Margin="5 0 0 0" Click="BtnResponsesXlsx_Click">Erzeuge Responses.Xlsx</Button>
-                    <Button DockPanel.Dock="Right" Padding="5 0 5 0" Margin="5 0 0 0" Click="BtnLogsXlsx_Click">Erzeuge Logs.Xlsx</Button>
+                    <Button DockPanel.Dock="Right" Padding="25 0 25 0" Margin="5 0 0 0" Click="BtnStart_Click">Start</Button>
+                    <!--<Button DockPanel.Dock="Right" Padding="5 0 5 0" Margin="5 0 0 0" Click="BtnLogsXlsx_Click">Erzeuge Logs.Xlsx</Button>-->
                 </WrapPanel>
             </DockPanel>
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -27,18 +27,19 @@
                         <TextBlock Name="TBCsvSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
                     </DockPanel>
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Quelldatei BookletSize.txt</TextBlock>
+                        <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">txt-Quelldatei Booklet-Size</TextBlock>
                         <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeBookletTxtSource_Click">Wählen</Button>
                         <TextBlock Name="TBBookletTxtSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
                     </DockPanel>
-                    <DockPanel>
+                    <!--<DockPanel>
                         <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Optionen</TextBlock>
                         <ComboBox DockPanel.Dock="Right" Width="150px">
                             <ComboBoxItem>v 1.1</ComboBoxItem>
                             <ComboBoxItem>v 1.2</ComboBoxItem>
+                            <ComboBoxItem>auto</ComboBoxItem>
                         </ComboBox>
                         <TextBlock Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">Version IQB-Testcenter</TextBlock>
-                    </DockPanel>
+                    </DockPanel>-->
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>
@@ -48,24 +49,8 @@
                 <Button Padding="5 0 5 0" Margin="5 0 0 0" Name="BtnEditor">Inhalt in Texteditor kopieren</Button>
                 <Button Padding="5 0 5 0" Margin="5 0 0 0" Name="BtnCancel" IsEnabled="False">Abbrechen</Button>
             </WrapPanel>
-            <Border BorderThickness="1" BorderBrush="Black">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <TextBox Name="MyTB" IsReadOnly="True" Background="Transparent" BorderBrush="Transparent">
-                        <TextBox.Triggers>
-                            <EventTrigger RoutedEvent="TextBox.TextChanged">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="MyTB" Storyboard.TargetProperty="Opacity" To="1" 
-                                         AutoReverse="False" />
-                                        <DoubleAnimation Storyboard.TargetName="MyTB" Storyboard.TargetProperty="Opacity" To="0" 
-                                         BeginTime="0:0:10" Duration="0:0:4" AutoReverse="False" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </TextBox.Triggers>
-                    </TextBox>
-                </ScrollViewer>
-            </Border>
+            <ProgressBar Name="PB" DockPanel.Dock="Bottom" Height="10" Minimum="0" Maximum="100" />
+            <local:MessageBoxUserControl x:Name="MBUC"/>
         </DockPanel>
     </Grid>
 </Window>

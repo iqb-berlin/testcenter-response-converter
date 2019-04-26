@@ -55,14 +55,34 @@ Public Class xlsxFactory
                     If s > "Z" Then s = "AA"
                 Case 2
                     s = s(0) + Chr(Asc(s(1)) + 1)
-                    If s(1) > "Z" Then s = Chr(Asc(s(0)) + 1) + "A"
+                    If s(1) > "Z" Then
+                        If s(0) = "Z" Then
+                            s = "AAA"
+                        Else
+                            s = Chr(Asc(s(0)) + 1) + "A"
+                        End If
+                    End If
+                Case 3
+                    s = s(0) + s(1) + Chr(Asc(s(2)) + 1)
+                    If s(2) > "Z" Then
+                        If s(1) = "Z" Then
+                            If s(0) = "Z" Then
+                                Throw New ArgumentOutOfRangeException("Excel Column " + s)
+                            Else
+                                s = Chr(Asc(s(0)) + 1) + "AA"
+                            End If
+                        Else
+                            s = s(0) + Chr(Asc(s(1)) + 1) + "A"
+                        End If
+                    End If
                 Case Else
-                    s = "AAA"
+                    Throw New ArgumentOutOfRangeException("Excel Column " + s)
             End Select
         End If
 
         Return s
     End Function
+
 
     Public Shared Function GetPrevColumn(ByVal s As String) As String
         If String.IsNullOrEmpty(s) OrElse s.ToUpper = "A" Then
