@@ -205,8 +205,9 @@ Class MainWindow
                                         Case "BOOKLETLOADSTART"
                                             myTestPersonList.SetFirstBookletLoadStart(group, login, code, booklet, timestampInt)
 
+
                                             Dim parameterClean As String = parameter.Replace("""""", """")
-                                            parameterClean = parameterClean.Substring(1, parameterClean.Length - 2)
+                                            parameterClean = parameterClean.Replace("\\", "\")
                                             Dim sysdata As Dictionary(Of String, String) = Nothing
                                             Try
                                                 sysdata = JsonConvert.DeserializeObject(parameterClean, GetType(Dictionary(Of String, String)))
@@ -271,55 +272,66 @@ Class MainWindow
                         'Responses
                         '########################################################
                         Dim TableResponses As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "Responses")
+                        myworker.ReportProgress(0.0#, "Schreibe Daten")
 
                         '########################################################
-                        Dim currentUser As System.Security.Principal.WindowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent
-                        Dim currentUserName As String = currentUser.Name.Substring(currentUser.Name.IndexOf("\") + 1)
 
-                        xlsxFactory.SetCellValueString("A", 1, TableResponses, "Antwort-Variablen Testcenter", xlsxFactory.CellFormatting.Null, myStyles)
-                        xlsxFactory.SetCellValueString("A", 2, TableResponses, "generiert mit " + My.Application.Info.AssemblyName + " V" +
-                                                       My.Application.Info.Version.Major.ToString + "." + My.Application.Info.Version.Minor.ToString + "." +
-                                                       My.Application.Info.Version.Build.ToString + " am " + DateTime.Now.ToShortDateString + " " + DateTime.Now.ToShortTimeString +
-                                                       " (" + currentUserName + ")", xlsxFactory.CellFormatting.Null, myStyles)
-
-                        Dim myRow As Integer = 4
-
+                        Dim myRow As Integer = 1
                         xlsxFactory.SetCellValueString("A", myRow, TableResponses, "ID", xlsxFactory.CellFormatting.RowHeader2, myStyles)
                         xlsxFactory.SetColumnWidth("A", TableResponses, 20)
-                        xlsxFactory.SetCellValueString("B", myRow, TableResponses, "Booklet", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("B", TableResponses, 20)
-
-                        Dim myColumn As String = "C"
+                        xlsxFactory.SetCellValueString("B", myRow, TableResponses, "Group", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("B", TableResponses, 10)
+                        xlsxFactory.SetCellValueString("C", myRow, TableResponses, "Login+Code", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("C", TableResponses, 10)
+                        xlsxFactory.SetCellValueString("D", myRow, TableResponses, "Booklet", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("D", TableResponses, 10)
+                        Dim myColumn As String = "E"
                         Dim Columns As New Dictionary(Of String, String)
 
+                        Dim progressMax As Integer = AllVariables.Count
+                        Dim progressCount As Integer = 1
+                        Dim stepMax As Integer = 5
+                        Dim stepCount As Integer = 1
+                        Dim progressValue As Double = 0.0#
+
                         For Each s As String In From v As String In AllVariables Order By v Select v
+                            progressValue = progressCount * (100 / stepMax) / progressMax + (100 / stepMax) * (stepCount - 1)
+                            myworker.ReportProgress(progressValue, "")
+                            progressCount += 1
                             xlsxFactory.SetCellValueString(myColumn, myRow, TableResponses, s, xlsxFactory.CellFormatting.RowHeader2, myStyles)
                             xlsxFactory.SetColumnWidth(myColumn, TableResponses, 10)
                             Columns.Add(s, myColumn)
                             myColumn = xlsxFactory.GetNextColumn(myColumn)
                         Next
 
-                        Dim progressMax As Integer = AllData.Count
-                        Dim progressCount As Integer = 1
+                        Dim BookletUnits As New Dictionary(Of String, List(Of String)) 'für unten TechTable
+
+                        progressMax = AllData.Count
+                        progressCount = 1
+                        stepCount += 1
                         For Each persondata As KeyValuePair(Of String, Dictionary(Of String, List(Of ResponseEntry))) In AllData
                             If myworker.CancellationPending Then Exit For
-                            myworker.ReportProgress(progressCount * 100 / progressMax, "")
+                            progressValue = progressCount * (100 / stepMax) / progressMax + (100 / stepMax) * (stepCount - 1)
+                            myworker.ReportProgress(progressValue, "")
                             progressCount += 1
                             For Each bookletdata As KeyValuePair(Of String, List(Of ResponseEntry)) In persondata.Value
-                                myRow += 1
-                                Dim myRowData As New List(Of RowData)
-                                If persondata.Value.Count > 1 Then
+                                Dim resp As ResponseEntry = bookletdata.Value.FirstOrDefault
+                                If resp IsNot Nothing Then
+                                    myRow += 1
+                                    Dim myRowData As New List(Of RowData)
                                     myRowData.Add(New RowData With {.Column = "A", .Value = persondata.Key + bookletdata.Key, .CellType = CellTypes.str})
-                                Else
-                                    myRowData.Add(New RowData With {.Column = "A", .Value = persondata.Key, .CellType = CellTypes.str})
-                                End If
-                                myRowData.Add(New RowData With {.Column = "B", .Value = bookletdata.Key, .CellType = CellTypes.str})
-                                For Each u As ResponseEntry In bookletdata.Value
-                                    For Each d As KeyValuePair(Of String, String) In u.data
-                                        myRowData.Add(New RowData With {.Column = Columns.Item(u.unit + "##" + d.Key), .Value = d.Value, .CellType = CellTypes.str})
+                                    myRowData.Add(New RowData With {.Column = "B", .Value = resp.group, .CellType = CellTypes.str})
+                                    myRowData.Add(New RowData With {.Column = "C", .Value = resp.login + resp.code, .CellType = CellTypes.str})
+                                    myRowData.Add(New RowData With {.Column = "D", .Value = bookletdata.Key, .CellType = CellTypes.str})
+                                    For Each u As ResponseEntry In bookletdata.Value
+                                        If Not BookletUnits.ContainsKey(bookletdata.Key) Then BookletUnits.Add(bookletdata.Key, New List(Of String))
+                                        If Not BookletUnits.Item(bookletdata.Key).Contains(u.unit) Then BookletUnits.Item(bookletdata.Key).Add(u.unit)
+                                        For Each d As KeyValuePair(Of String, String) In u.data
+                                            myRowData.Add(New RowData With {.Column = Columns.Item(u.unit + "##" + d.Key), .Value = d.Value, .CellType = CellTypes.str})
+                                        Next
                                     Next
-                                Next
-                                xlsxFactory.AppendRow(myRow, myRowData, TableResponses)
+                                    xlsxFactory.AppendRow(myRow, myRowData, TableResponses)
+                                End If
                             Next
                         Next
 
@@ -327,24 +339,37 @@ Class MainWindow
                         '########################################################
                         'TimeOnPage
                         '########################################################
+                        progressMax = myTestPersonList.Count
+                        progressCount = 1
+                        stepCount += 1
                         Dim TableTimeOnPage As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "TimeOnPage")
-                        xlsxFactory.SetCellValueString("A", 1, TableTimeOnPage, "Zeitpunkt-Variablen Testcenter", xlsxFactory.CellFormatting.Null, myStyles)
-                        xlsxFactory.SetCellValueString("A", 2, TableTimeOnPage, "generiert mit " + My.Application.Info.AssemblyName + " V" +
-                                                       My.Application.Info.Version.Major.ToString + "." + My.Application.Info.Version.Minor.ToString + "." +
-                                                       My.Application.Info.Version.Build.ToString + " am " + DateTime.Now.ToShortDateString + " " + DateTime.Now.ToShortTimeString +
-                                                       " (" + currentUserName + ")", xlsxFactory.CellFormatting.Null, myStyles)
-
-                        myRow = 4
+                        myRow = 1
                         xlsxFactory.SetCellValueString("A", myRow, TableTimeOnPage, "ID", xlsxFactory.CellFormatting.RowHeader2, myStyles)
                         xlsxFactory.SetColumnWidth("A", TableTimeOnPage, 20)
 
                         Dim AllTimeVariables As New List(Of String)
                         Dim AllTimeOnPage As New Dictionary(Of String, List(Of TimeOnPage))
+                        Dim BookletMaxVisitedPagesCount As New Dictionary(Of String, Integer) 'für unten TechTable
+                        Dim TesteeBookletVisitedPagesCount As New Dictionary(Of String, Integer) 'für unten TechTable
+                        Dim TesteeBookletRespondedUnitsCount As New Dictionary(Of String, Integer) 'für unten TechTable
                         For Each tc As KeyValuePair(Of String, TestPerson) In myTestPersonList
                             If myworker.CancellationPending Then Exit For
+                            progressValue = progressCount * (100 / stepMax) / progressMax + (100 / stepMax) * (stepCount - 1)
+                            myworker.ReportProgress(progressValue, "")
+                            progressCount += 1
                             If Not AllTimeOnPage.ContainsKey(tc.Key) Then
                                 Dim myTimeOnPageList As List(Of TimeOnPage) = tc.Value.GetTimeOnPageList(AllUnitsWithResponses)
                                 AllTimeOnPage.Add(tc.Key, myTimeOnPageList)
+
+                                TesteeBookletVisitedPagesCount.Add(tc.Key, myTimeOnPageList.Count)
+                                If BookletMaxVisitedPagesCount.ContainsKey(tc.Value.booklet) Then
+                                    If BookletMaxVisitedPagesCount.Item(tc.Value.booklet) < myTimeOnPageList.Count Then BookletMaxVisitedPagesCount.Item(tc.Value.booklet) = myTimeOnPageList.Count
+                                Else
+                                    BookletMaxVisitedPagesCount.Add(tc.Value.booklet, myTimeOnPageList.Count)
+                                End If
+
+                                TesteeBookletRespondedUnitsCount.Add(tc.Key, tc.Value.GetResponsesCompleteAllUnitCount(AllUnitsWithResponses))
+
                                 For Each p As TimeOnPage In myTimeOnPageList
                                     If Not AllTimeVariables.Contains(p.page) Then AllTimeVariables.Add(p.page)
                                 Next
@@ -365,9 +390,11 @@ Class MainWindow
 
                         progressMax = AllTimeOnPage.Count
                         progressCount = 1
+                        stepCount += 1
                         For Each topList As KeyValuePair(Of String, List(Of TimeOnPage)) In From top As KeyValuePair(Of String, List(Of TimeOnPage)) In AllTimeOnPage Order By top.Key
                             If myworker.CancellationPending Then Exit For
-                            myworker.ReportProgress(progressCount * 100 / progressMax, "")
+                            progressValue = progressCount * (100 / stepMax) / progressMax + (100 / stepMax) * (stepCount - 1)
+                            myworker.ReportProgress(progressValue, "")
                             progressCount += 1
 
                             myRow += 1
@@ -383,37 +410,49 @@ Class MainWindow
 
 
                         '########################################################
-                        'TechLog
+                        'TechData
                         '########################################################
-                        Dim TableTechLog As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "TechLog")
+                        Dim TableTechData As WorksheetPart = xlsxFactory.InsertWorksheet(ZielXLS.WorkbookPart, "TechData")
+                        Dim currentUser As System.Security.Principal.WindowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent
+                        Dim currentUserName As String = currentUser.Name.Substring(currentUser.Name.IndexOf("\") + 1)
 
-                        '########################################################
-                        'Dim currentUser As System.Security.Principal.WindowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent
-                        'Dim currentUserName As String = currentUser.Name.Substring(currentUser.Name.IndexOf("\") + 1)
-
-                        xlsxFactory.SetCellValueString("A", 1, TableTechLog, "Zeitpunkt-Variablen Testcenter", xlsxFactory.CellFormatting.Null, myStyles)
-                        xlsxFactory.SetCellValueString("A", 2, TableTechLog, "generiert mit " + My.Application.Info.AssemblyName + " V" +
+                        xlsxFactory.SetCellValueString("A", 1, TableTechData, "Antworten und Log-Daten IQB-Testcenter", xlsxFactory.CellFormatting.Null, myStyles)
+                        xlsxFactory.SetCellValueString("A", 2, TableTechData, "konvertiert mit " + My.Application.Info.AssemblyName + " V" +
                                                        My.Application.Info.Version.Major.ToString + "." + My.Application.Info.Version.Minor.ToString + "." +
                                                        My.Application.Info.Version.Build.ToString + " am " + DateTime.Now.ToShortDateString + " " + DateTime.Now.ToShortTimeString +
                                                        " (" + currentUserName + ")", xlsxFactory.CellFormatting.Null, myStyles)
 
                         myRow = 4
 
-                        xlsxFactory.SetCellValueString("A", myRow, TableTechLog, "ID", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("A", TableTechLog, 30)
-                        xlsxFactory.SetCellValueString("B", myRow, TableTechLog, "Start at", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("B", TableTechLog, 20)
-                        xlsxFactory.SetCellValueString("C", myRow, TableTechLog, "loadcomplete after", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("C", TableTechLog, 20)
-                        xlsxFactory.SetCellValueString("D", myRow, TableTechLog, "loadspeed", xlsxFactory.CellFormatting.RowHeader2, myStyles)
-                        xlsxFactory.SetColumnWidth("D", TableTechLog, 20)
+                        xlsxFactory.SetCellValueString("A", myRow, TableTechData, "ID", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("A", TableTechData, 30)
+                        xlsxFactory.SetCellValueString("B", myRow, TableTechData, "Start at", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("B", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("C", myRow, TableTechData, "loadcomplete after", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("C", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("D", myRow, TableTechData, "loadspeed", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("D", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("E", myRow, TableTechData, "firstUnitEnter after", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("E", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("F", myRow, TableTechData, "os", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("F", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("G", myRow, TableTechData, "browser", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("G", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("H", myRow, TableTechData, "screen", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("H", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("I", myRow, TableTechData, "pages visited ratio", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("I", TableTechData, 20)
+                        xlsxFactory.SetCellValueString("J", myRow, TableTechData, "units fully responded ratio", xlsxFactory.CellFormatting.RowHeader2, myStyles)
+                        xlsxFactory.SetColumnWidth("J", TableTechData, 20)
 
 
                         progressMax = myTestPersonList.Count
                         progressCount = 1
+                        stepCount += 1
                         For Each tc As KeyValuePair(Of String, TestPerson) In myTestPersonList
                             If myworker.CancellationPending Then Exit For
-                            myworker.ReportProgress(progressCount * 100 / progressMax, "")
+                            progressValue = progressCount * (100 / stepMax) / progressMax + (100 / stepMax) * (stepCount - 1)
+                            myworker.ReportProgress(progressValue, "")
                             progressCount += 1
 
                             myRow += 1
@@ -421,21 +460,38 @@ Class MainWindow
                             myRowData.Add(New RowData With {.Column = "A", .Value = tc.Key, .CellType = CellTypes.str})
                             myRowData.Add(New RowData With {.Column = "B", .Value = tc.Value.firstBookletLoadStart, .CellType = CellTypes.int})
                             myRowData.Add(New RowData With {.Column = "C", .Value = tc.Value.loadtime, .CellType = CellTypes.int})
-                            myRowData.Add(New RowData With {.Column = "D", .Value = tc.Value.loadspeed(bookletSize).ToString("#.##0,0"), .CellType = CellTypes.dec})
-                            myRowData.Add(New RowData With {.Column = "E", .Value = tc.Value.firstunitentertime, .CellType = CellTypes.int})
-                            'myRowData.Add(New RowData With {.Column = "F", .Value = tc.Value.unitActivities.getUnitPeriods(tc.Value.firstBookletLoadStart), .CellType = CellTypes.text})
-                            xlsxFactory.AppendRow(myRow, myRowData, TableTechLog)
+                            myRowData.Add(New RowData With {.Column = "D", .Value = tc.Value.loadspeed(bookletSize).ToString(), .CellType = CellTypes.dec})
+                            myRowData.Add(New RowData With {.Column = "E", .Value = tc.Value.firstUnitEnter - tc.Value.firstBookletLoadStart, .CellType = CellTypes.int})
+                            myRowData.Add(New RowData With {.Column = "F", .Value = tc.Value.os, .CellType = CellTypes.str})
+                            myRowData.Add(New RowData With {.Column = "G", .Value = tc.Value.browser, .CellType = CellTypes.str})
+                            myRowData.Add(New RowData With {.Column = "H", .Value = tc.Value.screen, .CellType = CellTypes.str})
+
+                            Dim myRatio As Double = 0.0#
+                            If TesteeBookletVisitedPagesCount.ContainsKey(tc.Key) AndAlso BookletMaxVisitedPagesCount.ContainsKey(tc.Value.booklet) Then
+                                Dim bmvpc As Integer = BookletMaxVisitedPagesCount.Item(tc.Value.booklet)
+                                If bmvpc > 0 Then myRatio = TesteeBookletVisitedPagesCount.Item(tc.Key) * 100 / bmvpc
+                            End If
+                            myRowData.Add(New RowData With {.Column = "I", .Value = myRatio.ToString(), .CellType = CellTypes.dec})
+
+                            myRatio = 0.0#
+                            If TesteeBookletRespondedUnitsCount.ContainsKey(tc.Key) AndAlso BookletUnits.ContainsKey(tc.Value.booklet) Then
+                                Dim buc As Integer = BookletUnits.Item(tc.Value.booklet).Count
+                                If buc > 0 Then myRatio = TesteeBookletRespondedUnitsCount.Item(tc.Key) * 100 / buc
+                            End If
+                            myRowData.Add(New RowData With {.Column = "J", .Value = myRatio.ToString(), .CellType = CellTypes.dec})
+
+                            xlsxFactory.AppendRow(myRow, myRowData, TableTechData)
                         Next
 
 
                     End Using
+                    myworker.ReportProgress(100.0#, "Speichern Datei")
                     Try
                         Using fs As New IO.FileStream(targetXlsxFilename, IO.FileMode.Create)
                             MemStream.WriteTo(fs)
                         End Using
-                        myworker.ReportProgress(20.0#, "Log-Einträge gespeichert")
                     Catch ex As Exception
-                        myworker.ReportProgress(20.0#, "e: Konnte Datei nicht schreiben: " + ex.Message)
+                        myworker.ReportProgress(100.0#, "e: Konnte Datei nicht schreiben: " + ex.Message)
                     End Try
                 End Using
             End If

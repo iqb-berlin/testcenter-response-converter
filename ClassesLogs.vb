@@ -44,8 +44,6 @@ Class TestPerson
     Public code As String
     Public booklet As String
     Public log As Activities
-    Public sysdata As Dictionary(Of String, String)
-
 
     Public ReadOnly Property loadtime() As Long
         Get
@@ -84,6 +82,26 @@ Class TestPerson
             If value < _firstUnitEnter Then _firstUnitEnter = value
         End Set
     End Property
+
+    Private _browser As String
+    Public ReadOnly Property browser() As String
+        Get
+            Return Me._browser
+        End Get
+    End Property
+    Private _os As String
+    Public ReadOnly Property os() As String
+        Get
+            Return Me._os
+        End Get
+    End Property
+    Private _screen As String
+    Public ReadOnly Property screen() As String
+        Get
+            Return Me._screen
+        End Get
+    End Property
+
     Public Sub New(g As String, l As String, c As String, b As String)
         group = g
         login = l
@@ -92,8 +110,10 @@ Class TestPerson
         _firstBookletLoadComplete = Long.MaxValue
         _firstBookletLoadStart = Long.MaxValue
         _firstUnitEnter = Long.MaxValue
-        sysdata = Nothing
         log = New Activities
+        _browser = "?"
+        _os = "?"
+        _screen = "?"
     End Sub
     Public Function loadspeed(bookletsizelist As Dictionary(Of String, Long)) As Double
         Dim myreturn As Double = 0.0
@@ -138,6 +158,29 @@ Class TestPerson
 
         Return (From top As KeyValuePair(Of String, TimeOnPage) In unitPageList Select top.Value).ToList
     End Function
+    Public Function GetResponsesCompleteAllUnitCount(unitsOnly As List(Of String)) As Integer
+        Dim unitList As New List(Of String)
+        For Each logList As KeyValuePair(Of Long, List(Of LogEvent)) In Me.log
+            For Each logEntry As LogEvent In logList.Value
+                If logEntry.key = "RESPONSESCOMPLETE" AndAlso logEntry.parameter = "all" AndAlso unitsOnly.Contains(logEntry.unit) AndAlso Not unitList.Contains(logEntry.unit) Then
+                    unitList.Add(logEntry.unit)
+                End If
+            Next
+        Next
+
+        Return unitList.Count
+    End Function
+    Public Sub SetSysdata(sysdata As Dictionary(Of String, String))
+        _browser = "?"
+        _os = "?"
+        _screen = "?"
+        If sysdata IsNot Nothing Then
+            If sysdata.ContainsKey("browserVersion") AndAlso sysdata.ContainsKey("browserName") Then _browser = sysdata.Item("browserName") + " " + sysdata.Item("browserVersion")
+            If sysdata.ContainsKey("osName") Then _os = sysdata.Item("osName")
+            If sysdata.ContainsKey("screenSizeWidth") AndAlso sysdata.ContainsKey("screenSizeHeight") Then _screen = sysdata.Item("screenSizeWidth") + " x " + sysdata.Item("screenSizeHeight")
+        End If
+    End Sub
+
 End Class
 
 Class TestPersonList
@@ -156,7 +199,7 @@ Class TestPersonList
     End Sub
     Public Sub SetSysdata(g As String, l As String, c As String, b As String, sysdata As Dictionary(Of String, String))
         If Not Me.ContainsKey(g + l + c + b) Then Me.Add(g + l + c + b, New TestPerson(g, l, c, b))
-        Me.Item(g + l + c + b).sysdata = sysdata
+        Me.Item(g + l + c + b).SetSysdata(sysdata)
     End Sub
     Public Sub AddLogEvent(g As String, l As String, c As String, b As String, timestamp As Long, unit As String, event_key As String, event_parameter As String)
         If Not Me.ContainsKey(g + l + c + b) Then Me.Add(g + l + c + b, New TestPerson(g, l, c, b))
