@@ -180,6 +180,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="README.md" />
     <Resource Include="Resources\IQB1_grau.jpg" />
     <Resource Include="Resources\iqbGrau.ico" />
     <EmbeddedResource Include="My Project\Resources.resx">
