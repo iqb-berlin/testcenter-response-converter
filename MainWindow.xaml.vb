@@ -79,7 +79,8 @@ Class MainWindow
         End If
     End Sub
     Private Sub BtnHelp_Click(sender As Object, e As RoutedEventArgs)
-        MsgBox("Diese Funktion ist noch nicht verfügbar.", vbOK, "Warte warte, bald")
+        Dim myDlg As New AppAboutDialog With {.Title = "Über " + My.Application.Info.AssemblyName, .Owner = Me}
+        myDlg.ShowDialog()
     End Sub
 
     Private Sub BtnEditor_Click() Handles BtnEditor.Click
