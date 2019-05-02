@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HUBerlin.IQB.TC.AntwortKonverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" Background="#FFF0F0F0" Icon="pack://siteoforigin:,,,/Resources/IQB-Testcenter.ico">
+        Title="MainWindow" Height="450" Width="800" Background="#FFF0F0F0" Icon="/itc-AntwortKonverter;component/Resources/IQB-Testcenter.ico">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
