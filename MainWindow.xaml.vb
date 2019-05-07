@@ -240,18 +240,19 @@ Class MainWindow
                             lineCount += 1
                             If line IsNot Nothing Then
                                 '######
-                                Dim entry As New ResponseEntry(line, "file '" + fi.Name + "', line " + lineCount.ToString())
-                                If entry.data.Count > 0 Then
-                                    For Each d As KeyValuePair(Of String, String) In entry.data
-                                        If Not AllUnitsWithResponses.Contains(entry.unit) Then AllUnitsWithResponses.Add(entry.unit)
-                                        If Not AllVariables.Contains(entry.unit + "##" + d.Key) Then AllVariables.Add(entry.unit + "##" + d.Key)
-                                    Next
+                                For Each entry As ResponseEntry In ResponseEntry.getResponseEntriesFromLine(line, "file '" + fi.Name + "', line " + lineCount.ToString())
+                                    If entry.data.Count > 0 Then
+                                        For Each d As KeyValuePair(Of String, String) In entry.data
+                                            If Not AllUnitsWithResponses.Contains(entry.unit) Then AllUnitsWithResponses.Add(entry.unit)
+                                            If Not AllVariables.Contains(entry.unit + "##" + d.Key) Then AllVariables.Add(entry.unit + "##" + d.Key)
+                                        Next
 
-                                    If Not AllData.ContainsKey(entry.Key) Then AllData.Add(entry.Key, New Dictionary(Of String, List(Of ResponseEntry)))
-                                    Dim myPerson As Dictionary(Of String, List(Of ResponseEntry)) = AllData.Item(entry.Key)
-                                    If Not myPerson.ContainsKey(entry.booklet) Then myPerson.Add(entry.booklet, New List(Of ResponseEntry))
-                                    myPerson.Item(entry.booklet).Add(entry)
-                                End If
+                                        If Not AllData.ContainsKey(entry.Key) Then AllData.Add(entry.Key, New Dictionary(Of String, List(Of ResponseEntry)))
+                                        Dim myPerson As Dictionary(Of String, List(Of ResponseEntry)) = AllData.Item(entry.Key)
+                                        If Not myPerson.ContainsKey(entry.booklet) Then myPerson.Add(entry.booklet, New List(Of ResponseEntry))
+                                        myPerson.Item(entry.booklet).Add(entry)
+                                    End If
+                                Next
                             End If
                             '######
                         Loop

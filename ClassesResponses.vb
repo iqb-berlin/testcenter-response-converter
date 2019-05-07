@@ -4,8 +4,6 @@
     Public code As String
     Public booklet As String
     Public unit As String
-    Private response As String
-    Private responseType As String
     Public data As Dictionary(Of String, String)
     Public responseTimestamp As String
     Public ReadOnly Property Key As String
@@ -13,16 +11,19 @@
             Return group + login + code
         End Get
     End Property
-    Public Sub New(line As String, Optional errorLocation As String = "")
-        group = ""
-        login = ""
-        code = ""
-        booklet = ""
-        unit = ""
-        response = ""
-        responseType = ""
-        responseTimestamp = ""
-        data = New Dictionary(Of String, String)
+
+    Public Shared Function getResponseEntriesFromLine(Line As String, Optional errorLocation As String = "") As List(Of ResponseEntry)
+        Dim myreturn As New List(Of ResponseEntry)
+
+        Dim response As String = ""
+        Dim responseType As String = ""
+
+        Dim localgroup As String = ""
+        Dim locallogin As String = ""
+        Dim localcode As String = ""
+        Dim localbooklet As String = ""
+        Dim localunit As String = ""
+        Dim localresponseTimestamp As String = ""
 
         Dim position As Integer = 0
         Dim semicolonActive As Boolean = True
@@ -38,21 +39,21 @@
                         End If
                         Select Case position
                             Case 0
-                                group = tmpStr
+                                localgroup = tmpStr
                             Case 1
-                                login = tmpStr
+                                locallogin = tmpStr
                             Case 2
-                                code = tmpStr
+                                localcode = tmpStr
                             Case 3
-                                booklet = tmpStr
+                                localbooklet = tmpStr
                             Case 4
-                                unit = tmpStr
+                                localunit = tmpStr
                             Case 5
                                 response = tmpStr
                             Case 7
                                 responseType = tmpStr
                             Case 8
-                                responseTimestamp = tmpStr
+                                localresponseTimestamp = tmpStr
                         End Select
                         tmpStr = ""
                     End If
@@ -73,25 +74,113 @@
             If responseType = "VERAOnlineV1" Then
                 Dim tmpResponse As String = response.Replace("""""", """")
                 tmpResponse = tmpResponse.Replace("\\", "\")
+                Dim localdata As New Dictionary(Of String, String)
                 Try
-                    data = Newtonsoft.Json.JsonConvert.DeserializeObject(tmpResponse, GetType(Dictionary(Of String, String)))
+                    localdata = Newtonsoft.Json.JsonConvert.DeserializeObject(tmpResponse, GetType(Dictionary(Of String, String)))
                 Catch ex As Exception
-                    data.Add("ConverterError", "parsing " + responseType + "failed: " + ex.Message)
-                    If Not String.IsNullOrEmpty(errorLocation) Then data.Add("ErrorLocation", errorLocation)
+                    localdata.Add("ConverterError", "parsing " + responseType + "failed: " + ex.Message)
+                    If Not String.IsNullOrEmpty(errorLocation) Then localdata.Add("ErrorLocation", errorLocation)
                     Debug.Print("parseError " + ex.Message + " @ " + errorLocation)
                     Debug.Print(tmpResponse)
                 End Try
-            Else
-                Debug.Print("buggy responseType for " + response)
-                If String.IsNullOrEmpty(responseType) Then
-                    data.Add("ConverterError", "responseType not given")
+                myreturn.Add(New ResponseEntry With {
+                             .booklet = localbooklet,
+                             .code = localcode,
+                             .data = localdata,
+                             .group = localgroup,
+                             .login = locallogin,
+                             .responseTimestamp = localresponseTimestamp,
+                             .unit = localunit})
+
+                '################## IQBSurveysV1 ################################
+            ElseIf responseType = "IQBSurveysV1" Then
+                Dim tmpResponse As String = response.Replace("""""", """")
+                tmpResponse = tmpResponse.Replace("\\", "\")
+                Dim allResponses As String() = Nothing
+                Dim localdata As New Dictionary(Of String, String)
+                Try
+                    allResponses = Newtonsoft.Json.JsonConvert.DeserializeObject(tmpResponse, GetType(String()))
+                Catch ex As Exception
+                    localdata.Add("ConverterError", "parsing " + responseType + "failed: " + ex.Message)
+                    If Not String.IsNullOrEmpty(errorLocation) Then localdata.Add("ErrorLocation", errorLocation)
+                    Debug.Print("parseError " + ex.Message + " @ " + errorLocation)
+                    Debug.Print(tmpResponse)
+                End Try
+                If allResponses Is Nothing Then
+                    myreturn.Add(New ResponseEntry With {
+                             .booklet = localbooklet,
+                             .code = localcode,
+                             .data = localdata,
+                             .group = localgroup,
+                             .login = locallogin,
+                             .responseTimestamp = localresponseTimestamp,
+                             .unit = localunit})
                 Else
-                    data.Add("ConverterError", "unknown responseType " + responseType)
+                    Dim testeeData As New Dictionary(Of Integer, Dictionary(Of String, String))
+                    For Each s As String In allResponses
+                        Dim sSplits As String() = s.Split({"::"}, StringSplitOptions.RemoveEmptyEntries)
+                        If sSplits.Count = 2 Then
+                            'find out person
+                            Dim pIndex As Integer = 0
+                            Dim pPos As Integer = sSplits(0).LastIndexOf("_")
+                            If pPos > 1 AndAlso Integer.TryParse(sSplits(0).Substring(pPos + 1), pIndex) Then
+                                If pIndex > 0 Then
+                                    If Not testeeData.ContainsKey(pIndex) Then testeeData.Add(pIndex, New Dictionary(Of String, String))
+                                    Dim varname As String = sSplits(0).Substring(0, pPos)
+                                    If Not testeeData.Item(pIndex).ContainsKey(varname) Then testeeData.Item(pIndex).Add(varname, sSplits(1))
+                                End If
+                            End If
+                            If pIndex <= 0 Then localdata.Add(sSplits(0), sSplits(1))
+                        End If
+                    Next
+                    If testeeData.Count > 0 Then
+                        For Each td As KeyValuePair(Of Integer, Dictionary(Of String, String)) In testeeData
+                            myreturn.Add(New ResponseEntry With {
+                             .booklet = localbooklet,
+                             .code = IIf(String.IsNullOrEmpty(localcode), td.Key.ToString, localcode + "_" + td.Key.ToString),
+                             .data = td.Value,
+                             .group = localgroup,
+                             .login = locallogin,
+                             .responseTimestamp = localresponseTimestamp,
+                             .unit = localunit})
+                        Next
+                    End If
+                    If localdata.Count > 0 Then
+                        myreturn.Add(New ResponseEntry With {
+                                     .booklet = localbooklet,
+                                     .code = localcode,
+                                     .data = localdata,
+                                     .group = localgroup,
+                                     .login = locallogin,
+                                     .responseTimestamp = localresponseTimestamp,
+                                     .unit = localunit})
+                    End If
                 End If
-                If Not String.IsNullOrEmpty(errorLocation) Then data.Add("ErrorLocation", errorLocation)
+
+            Else
+                '##################
+                Debug.Print("buggy responseType for " + response)
+                Dim localdata As New Dictionary(Of String, String)
+                If String.IsNullOrEmpty(responseType) Then
+                    localdata.Add("ConverterError", "responseType not given")
+                Else
+                    localdata.Add("ConverterError", "unknown responseType " + responseType)
+                End If
+                If Not String.IsNullOrEmpty(errorLocation) Then localdata.Add("ErrorLocation", errorLocation)
+                myreturn.Add(New ResponseEntry With {
+                             .booklet = localbooklet,
+                             .code = localcode,
+                             .data = localdata,
+                             .group = localgroup,
+                             .login = locallogin,
+                             .responseTimestamp = localresponseTimestamp,
+                             .unit = localunit})
+
             End If
         End If
-    End Sub
+
+        Return myreturn
+    End Function
 
 End Class
 
