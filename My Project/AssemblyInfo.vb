@@ -15,7 +15,7 @@ Imports System.Windows
 <Assembly: AssemblyDescription("Konvertierung der Daten, die ein IQB-Testcenter erzeugt.")>
 <Assembly: AssemblyCompany("IQB Berlin")>
 <Assembly: AssemblyProduct("itc_AntwortKonverter")>
-<Assembly: AssemblyCopyright("2019")>
+<Assembly: AssemblyCopyright("2019, 2020")>
 <Assembly: AssemblyTrademark("")>
 <Assembly: ComVisible(false)>
 
@@ -55,5 +55,5 @@ Imports System.Windows
 ' indem Sie "*" wie unten gezeigt eingeben:
 ' <Assembly: AssemblyVersion("1.0.*")>
 
-<Assembly: AssemblyVersion("1.2.0.0")>
-<Assembly: AssemblyFileVersion("1.2.0.0")>
+<Assembly: AssemblyVersion("1.3.0.0")>
+<Assembly: AssemblyFileVersion("1.3.0.0")>

@@ -31,6 +31,12 @@
                         <Button DockPanel.Dock="Right" Width="100px" Click="BtnChangeBookletTxtSource_Click">Wählen</Button>
                         <TextBlock Name="TBBookletTxtSource" Margin="10 0 10 0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"></TextBlock>
                     </DockPanel>
+                    <TextBlock DockPanel.Dock="Left">
+                        <Hyperlink Click="HyperlinkClick" NavigateUri="https://github.com/iqb-berlin/itc-response-converter/docs/manual.md">
+                            <Run Text="Dokumentation" ToolTip="Link zu GitHub-Repository (Quellcode dieser Anwendung)"/>
+                        </Hyperlink>
+                    </TextBlock>
+
                     <!--<DockPanel>
                         <TextBlock DockPanel.Dock="Top" Margin="2 5 0 0" FontSize="14px">Optionen</TextBlock>
                         <ComboBox DockPanel.Dock="Right" Width="150px">

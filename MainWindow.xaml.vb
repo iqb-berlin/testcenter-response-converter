@@ -16,7 +16,7 @@ Class MainWindow
     Private Sub BtnChangeCsvSource_Click(sender As Object, e As RoutedEventArgs)
         Dim folderpicker As New System.Windows.Forms.FolderBrowserDialog With {.Description = "Wählen des Quellverzeichnisses für die Csv-Dateien",
                                                         .ShowNewFolderButton = False, .SelectedPath = My.Settings.lastfolder_csvSources}
-        If folderpicker.ShowDialog() Then
+        If folderpicker.ShowDialog() AndAlso Not String.IsNullOrEmpty(folderpicker.SelectedPath) Then
             Me.TBCsvSource.Text = folderpicker.SelectedPath
             My.Settings.lastfolder_csvSources = folderpicker.SelectedPath
             My.Settings.Save()
@@ -46,7 +46,7 @@ Class MainWindow
     Private Sub BtnChangeBookletTxtSource_Click(sender As Object, e As RoutedEventArgs)
         Dim filepicker As New Microsoft.Win32.OpenFileDialog With {.FileName = My.Settings.lastfile_BookletTxt, .Filter = "Txt-Dateien|*.txt",
                                                                            .DefaultExt = "Xlsx", .Title = "BookletTxt - Wähle Datei"}
-        If filepicker.ShowDialog Then
+        If filepicker.ShowDialog AndAlso Not String.IsNullOrEmpty(filepicker.FileName) Then
             Me.TBBookletTxtSource.Text = filepicker.FileName
             My.Settings.lastfile_BookletTxt = filepicker.FileName
             My.Settings.Save()
@@ -500,4 +500,10 @@ Class MainWindow
         End If
     End Sub
 
+    Private Sub HyperlinkClick(sender As Object, e As RoutedEventArgs)
+        Dim linkcontrol As System.Windows.Documents.Hyperlink = sender
+        Dim NavUri As Uri = linkcontrol.NavigateUri
+        Process.Start(New ProcessStartInfo(NavUri.AbsoluteUri))
+        e.Handled = True
+    End Sub
 End Class
